@@ -59,10 +59,14 @@ def f():
                 draw_bot(list_of_bots[x][y])
 
         if not flag:
-            f()
+            return
         pygame.display.flip()
         clock.tick(fps)
 
 
 if __name__ == "__main__":
-    f()
+    i=0
+    while True:
+        f()
+        print(f"Сдохло все поколение №{i+1}")
+        i+=1
