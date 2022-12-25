@@ -17,14 +17,17 @@ class DiedBot:
 
 
 class Bot:
-    def __init__(self, x, y, from_bot: "Bot" = None, energy=100):
+    def __init__(self, x, y, from_bot: "Bot" = None, energy=config.MaxEnergy):
         if from_bot is not None:
-            self.rgb = from_bot.rgb
+            self.eat_rgb = from_bot.eat_rgb
+            self.rasa_rgb = from_bot.rasa_rgb
             self._genom = from_bot._genom
-            mutation_at = random.randint(0, config.GenomShape - 1)
-            self._genom[mutation_at] = random.randint(*config.GenomItemsLen)
+            if random.randint(1, config.MutationChance) == 1:
+                mutation_at = random.randint(0, config.GenomShape - 1)
+                self._genom[mutation_at] = random.randint(*config.GenomItemsLen)
         else:
-            self.rgb = [255, 255, 255]  # белый
+            self.eat_rgb = [255, 255, 255]  # белый
+            self.rasa_rgb = (random.randint(1, 255) for _ in range(3))
             self._genom = [random.randint(*config.GenomItemsLen) for _ in range(config.GenomShape)]
         self.energy = energy
         self.age = 1
@@ -74,9 +77,9 @@ class Bot:
     def _get_energy_from_sun(self):
         self._add_energy(config.EnergyFromSun[self.y])
         self._change_genom_point(1)
-        self.rgb[1] = min(255, 1 + self.rgb[1])
-        self.rgb[0] = min(255, -1 + self.rgb[0])
-        self.rgb[2] = min(255, -1 + self.rgb[2])
+        self.eat_rgb[1] = min(255, 1 + self.eat_rgb[1])
+        self.eat_rgb[0] = min(255, -1 + self.eat_rgb[0])
+        self.eat_rgb[2] = min(255, -1 + self.eat_rgb[2])
 
     def _see(self, x: int, list_of_bots: ["Bot", DiedBot]):
         match x:
@@ -85,7 +88,10 @@ class Bot:
                 if isinstance(entity, DiedBot):
                     self._change_genom_point(2)
                 elif entity is not None:
-                    self._change_genom_point(3)
+                    if entity.rasa_rgb is self.rasa_rgb:
+                        self._change_genom_point(3)
+                    else:
+                        self._change_genom_point(4)
                 else:
                     self._change_genom_point(1)
 
@@ -94,7 +100,10 @@ class Bot:
                 if isinstance(entity, DiedBot):
                     self._change_genom_point(2)
                 elif entity is not None:
-                    self._change_genom_point(3)
+                    if entity.rasa_rgb is self.rasa_rgb:
+                        self._change_genom_point(3)
+                    else:
+                        self._change_genom_point(4)
                 else:
                     self._change_genom_point(1)
             case 2:
@@ -102,7 +111,10 @@ class Bot:
                 if isinstance(entity, DiedBot):
                     self._change_genom_point(2)
                 elif entity is not None:
-                    self._change_genom_point(3)
+                    if entity.rasa_rgb is self.rasa_rgb:
+                        self._change_genom_point(3)
+                    else:
+                        self._change_genom_point(4)
                 else:
                     self._change_genom_point(1)
             case 3:
@@ -110,7 +122,10 @@ class Bot:
                 if isinstance(entity, DiedBot):
                     self._change_genom_point(2)
                 elif entity is not None:
-                    self._change_genom_point(3)
+                    if entity.rasa_rgb is self.rasa_rgb:
+                        self._change_genom_point(3)
+                    else:
+                        self._change_genom_point(4)
                 else:
                     self._change_genom_point(1)
             case 4:
@@ -118,7 +133,10 @@ class Bot:
                 if isinstance(entity, DiedBot):
                     self._change_genom_point(2)
                 elif entity is not None:
-                    self._change_genom_point(3)
+                    if entity.rasa_rgb is self.rasa_rgb:
+                        self._change_genom_point(3)
+                    else:
+                        self._change_genom_point(4)
                 else:
                     self._change_genom_point(1)
             case 5:
@@ -126,7 +144,10 @@ class Bot:
                 if isinstance(entity, DiedBot):
                     self._change_genom_point(2)
                 elif entity is not None:
-                    self._change_genom_point(3)
+                    if entity.rasa_rgb is self.rasa_rgb:
+                        self._change_genom_point(3)
+                    else:
+                        self._change_genom_point(4)
                 else:
                     self._change_genom_point(1)
             case 6:
@@ -134,7 +155,10 @@ class Bot:
                 if isinstance(entity, DiedBot):
                     self._change_genom_point(2)
                 elif entity is not None:
-                    self._change_genom_point(3)
+                    if entity.rasa_rgb is self.rasa_rgb:
+                        self._change_genom_point(3)
+                    else:
+                        self._change_genom_point(4)
                 else:
                     self._change_genom_point(1)
             case 7:
@@ -142,7 +166,10 @@ class Bot:
                 if isinstance(entity, DiedBot):
                     self._change_genom_point(2)
                 elif entity is not None:
-                    self._change_genom_point(3)
+                    if entity.rasa_rgb is self.rasa_rgb:
+                        self._change_genom_point(3)
+                    else:
+                        self._change_genom_point(4)
                 else:
                     self._change_genom_point(1)
 
@@ -154,15 +181,15 @@ class Bot:
 
     def _eat_bot(self, entity: "Bot"):
         self._add_energy(entity.energy * config.WhenEatBot)
-        self.rgb[1] = max(0, -1 + self.rgb[1])
-        self.rgb[0] = max(0, -1 + self.rgb[0])
-        self.rgb[2] = min(255, +1 + self.rgb[2])
+        self.eat_rgb[1] = max(0, -1 + self.eat_rgb[1])
+        self.eat_rgb[0] = max(0, -1 + self.eat_rgb[0])
+        self.eat_rgb[2] = min(255, +1 + self.eat_rgb[2])
 
     def _eat_die_bot(self, entity: DiedBot):
-        self.energy += entity.energy
-        self.rgb[1] = max(0, -1 + self.rgb[1])
-        self.rgb[0] = min(255, +1 + self.rgb[0])
-        self.rgb[2] = max(0, -1 + self.rgb[2])
+        self._add_energy(entity.energy)
+        self.eat_rgb[1] = max(0, -1 + self.eat_rgb[1])
+        self.eat_rgb[0] = min(255, +1 + self.eat_rgb[0])
+        self.eat_rgb[2] = max(0, -1 + self.eat_rgb[2])
 
     def _go(self, x: int, list_of_bots: ["Bot", DiedBot]):
         self._see(x, list_of_bots)
