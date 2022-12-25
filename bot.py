@@ -24,10 +24,10 @@ class Bot:
             self._genom = from_bot._genom
             if random.randint(1, config.MutationChance) == 1:
                 mutation_at = random.randint(0, config.GenomShape - 1)
-                self._genom[mutation_at] = random.randint(*config.GenomItemsLen)
+                self._genom[mutation_at] = random.randint(config.GenomItemsLen[0], config.GenomItemsLen[1] - 1)
         else:
             self.eat_rgb = [255, 255, 255]  # белый
-            self.rasa_rgb = (random.randint(1, 255) for _ in range(3))
+            self.rasa_rgb = tuple([random.randint(1, 255) for _ in range(3)])
             self._genom = [random.randint(*config.GenomItemsLen) for _ in range(config.GenomShape)]
         self.energy = energy
         self.age = 1
@@ -36,6 +36,7 @@ class Bot:
         self._genom_point = 0
 
     def move(self, list_of_bots: [DiedBot, "Bot"]):
+        self.age += 1
         for i in range(1000):
             action = self._genom[self._genom_point]
             match action:
@@ -57,9 +58,9 @@ class Bot:
                 case 28:
                     self._check_age()
                 case _:
-                    self._change_genom_point(action - 28)
+                    self._change_genom_point(action)
         else:
-            self._get_energy_from_sun()
+            self.kill_me(list_of_bots)
         if self.age >= config.MaxAge or self.energy <= 0:
             self.kill_me(list_of_bots)
 
@@ -69,7 +70,7 @@ class Bot:
         if self.energy < config.MinEnergyToCreateBot:
             return
         list_of_bots[coordinates[0]][coordinates[1]] = Bot(*coordinates, self, energy=config.EnergyWhenBirth)
-        self._add_energy(-max(config.KEnergyToCreateBot * self.energy, config.MinEnergyToCreateBot))
+        self._add_energy(-max(int(config.KEnergyToCreateBot * self.energy), config.MinEnergyToCreateBot))
 
     def _add_energy(self, x: int):
         self.energy = min(self.energy + x, config.MaxEnergy)
@@ -78,8 +79,8 @@ class Bot:
         self._add_energy(config.EnergyFromSun[self.y])
         self._change_genom_point(1)
         self.eat_rgb[1] = min(255, 1 + self.eat_rgb[1])
-        self.eat_rgb[0] = min(255, -1 + self.eat_rgb[0])
-        self.eat_rgb[2] = min(255, -1 + self.eat_rgb[2])
+        self.eat_rgb[0] = max(0, -1 + self.eat_rgb[0])
+        self.eat_rgb[2] = max(0, -1 + self.eat_rgb[2])
 
     def _see(self, x: int, list_of_bots: ["Bot", DiedBot]):
         match x:
@@ -180,7 +181,7 @@ class Bot:
         self.y = y
 
     def _eat_bot(self, entity: "Bot"):
-        self._add_energy(entity.energy * config.WhenEatBot)
+        self._add_energy(int(entity.energy * config.WhenEatBot))
         self.eat_rgb[1] = max(0, -1 + self.eat_rgb[1])
         self.eat_rgb[0] = max(0, -1 + self.eat_rgb[0])
         self.eat_rgb[2] = min(255, +1 + self.eat_rgb[2])
@@ -265,7 +266,7 @@ class Bot:
         self._change_genom_point(self.age)
 
     def _change_genom_point(self, x: int):
-        self._genom_point = (x + self._genom_point) % (config.GenomItemsLen[1] + 1)
+        self._genom_point = (x + self._genom_point) % config.GenomShape
 
     def copy_genom(self):
         return self._genom
@@ -273,4 +274,4 @@ class Bot:
     def kill_me(self, list_of_bots: ["Bot", DiedBot]):
         if self.energy <= 0:
             list_of_bots[self.x][self.y] = None
-        list_of_bots[self.x][self.y] = DiedBot(self.x, self.y, self.energy * config.WhenDie)
+        list_of_bots[self.x][self.y] = DiedBot(self.x, self.y, int(self.energy * config.WhenDie))
