@@ -3,20 +3,6 @@ import random
 import config
 
 
-class DiedBot:
-    def __init__(self, x, y, energy):
-        self.x = x
-        self.y = y
-        self.energy = energy
-        self.rgb = [0, 0, 0]
-
-    def __eq__(self, other):
-        return (self.x == other.x) and (self.y == other.y)
-
-    def kill_me(self, list_of_bots: list[list[Bot | DiedBot | None]]):
-        list_of_bots[self.x][self.y] = None
-
-
 class Bot:
     def __init__(self, x, y, from_bot: Bot = None, energy=config.MaxEnergy):
         if from_bot is not None:
@@ -37,7 +23,7 @@ class Bot:
         self._max_age = random.choice(config.MaxAges)
         self._genom_point = 0
 
-    def move(self, list_of_bots: list[list[Bot | DiedBot | None]]):
+    def move(self, list_of_bots: list[list[Square]]):
         self.age += 1
         for i in range(1000):
             action = self._genom[self._genom_point]
@@ -59,19 +45,25 @@ class Bot:
                     self._check_my_energy()
                 case 28:
                     self._check_age()
+                case 29 | 30 | 31 | 32 | 33 | 34 | 35 | 36:
+                    self._check_poison(action - 29, list_of_bots)
+                case 37 | 38 | 39 | 40 | 41 | 42 | 43 | 44:
+                    self._convert_poison_to_energy(action - 37, list_of_bots)
+                    break
                 case _:
                     self._change_genom_point(action)
         else:
-            self.kill_me(list_of_bots)
-        if self.age >= self._max_age or self.energy <= 0:
-            self.kill_me(list_of_bots)
+            self.die(list_of_bots)
+        if self.age >= self._max_age or self.energy <= 0 or \
+                list_of_bots[self.x][self.y].poison >= config.PoisonCountToDie:
+            self.die(list_of_bots)
 
-    def _multiplicate(self, x: int, list_of_bots: list[list[Bot | DiedBot | None]]):
+    def _multiplicate(self, x: int, list_of_bots: list[list[Square]]):
         coordinates = (self.x, self.y)
         self._go(x, list_of_bots)
         if self.energy < config.EnergyToCreateBot:
             return
-        list_of_bots[coordinates[0]][coordinates[1]] = Bot(*coordinates, self, energy=config.EnergyWhenBirth)
+        list_of_bots[coordinates[0]][coordinates[1]].bot = Bot(*coordinates, self, energy=config.EnergyWhenBirth)
         self._add_energy(-config.EnergyToCreateBot)
 
     def _get_coordinates_to_move(self, a: int):
@@ -93,10 +85,10 @@ class Bot:
             case 7:
                 coordinates = [self.x - 1, self.y]
             case _:
-                raise Exception("Вы долбаеб, и передали в эту функцию неправельный a")
+                raise Exception("Вы долбоеб, и передали в эту функцию неправильный a")
         return coordinates[0] % config.WindowX, coordinates[1] % config.WindowY
 
-    def _get_entity_at_pos(self, x: int, list_of_bots: list[list[Bot | DiedBot | None]]):
+    def _get_square_at_pos_x(self, x: int, list_of_bots: list[list[Square]]):
         position_coordinates = self._get_coordinates_to_move(x)
         return list_of_bots[position_coordinates[0]][position_coordinates[1]]
 
@@ -106,49 +98,49 @@ class Bot:
     def _get_energy_from_sun(self):
         self._add_energy(config.EnergyFromSun[self.y])
         self._change_genom_point(1)
-        self.eat_rgb[1] = min(255, 1 + self.eat_rgb[1])
         self.eat_rgb[0] = max(0, -1 + self.eat_rgb[0])
+        self.eat_rgb[1] = min(255, 2 + self.eat_rgb[1])
         self.eat_rgb[2] = max(0, -1 + self.eat_rgb[2])
 
-    def _see(self, x: int, list_of_bots: list[list[Bot | DiedBot | None]]):
-        entity = self._get_entity_at_pos(x, list_of_bots)
-        if isinstance(entity, DiedBot):
-            self._change_genom_point(2)
-        elif entity is not None:
-            if entity.rasa_rgb is self.rasa_rgb:
-                self._change_genom_point(3)
-            else:
-                self._change_genom_point(4)
-        else:
+    def _see(self, x: int, list_of_bots: list[list[Square]]):
+        sq = self._get_square_at_pos_x(x, list_of_bots)
+        if sq.bot:
             self._change_genom_point(1)
+        else:
+            self._change_genom_point(2)
 
-    def _move_me_at(self, x: int, y: int, list_of_bots: list[list[Bot | DiedBot | None]]):
-        list_of_bots[self.x][self.y] = None
-        list_of_bots[x][y] = self
+    def _move_me_at(self, x: int, y: int, list_of_bots: list[list[Square]]):
+        list_of_bots[self.x][self.y].bot = None
+        list_of_bots[x][y].bot = self
         self.x = x
         self.y = y
 
-    def _eat_bot(self, entity: Bot):
-        self._add_energy(int(entity.energy * config.WhenEatBot))
+    def _eat_bot(self, bot: Bot):
+        self._add_energy(int(bot.energy * config.WhenEatBot) - config.EnergyToEatBot)
+        self.eat_rgb[0] = min(255, 2 + self.eat_rgb[0])
         self.eat_rgb[1] = max(0, -1 + self.eat_rgb[1])
-        self.eat_rgb[0] = max(0, -1 + self.eat_rgb[0])
-        self.eat_rgb[2] = min(255, +1 + self.eat_rgb[2])
-
-    def _eat_die_bot(self, entity: DiedBot):
-        self._add_energy(entity.energy)
-        self.eat_rgb[1] = max(0, -1 + self.eat_rgb[1])
-        self.eat_rgb[0] = min(255, +1 + self.eat_rgb[0])
         self.eat_rgb[2] = max(0, -1 + self.eat_rgb[2])
 
-    def _go(self, x: int, list_of_bots: list[list[Bot | DiedBot | None]]):
+    def _check_poison(self, x: int, list_of_bots: list[list[Square]]):
+        sq = self._get_square_at_pos_x(x, list_of_bots)
+        self._change_genom_point(min(sq.poison, config.GenomShape))
+
+    def _convert_poison_to_energy(self, x, list_of_bots: list[list[Square]]):
+        sq = self._get_square_at_pos_x(x, list_of_bots)
+        self._add_energy(-config.EnergyToConvertPoison)
+        self._add_energy(int(min(sq.poison, config.MaxPoisonToConvertIntoEnergy) * config.PoisonToEnergy))
+        self.eat_rgb[0] = max(0, -1 + self.eat_rgb[0])
+        self.eat_rgb[1] = max(0, -1 + self.eat_rgb[1])
+        self.eat_rgb[2] = min(255, 2 + self.eat_rgb[2])
+        self._change_genom_point(1)
+
+    def _go(self, x: int, list_of_bots: list[list[Square]]):
         self._see(x, list_of_bots)
         self._add_energy(-config.MoveEnergy)
-        entity = self._get_entity_at_pos(x, list_of_bots)
-        if isinstance(entity, DiedBot):
-            self._eat_die_bot(entity)
-        elif entity is not None:
-            self._eat_bot(entity)
-        self._move_me_at((self.x - 1) % config.WindowX, (self.y - 1) % config.WindowY, list_of_bots)
+        sq = self._get_square_at_pos_x(x, list_of_bots)
+        if sq.bot is not None:
+            self._eat_bot(sq.bot)
+        self._move_me_at(sq.x, sq.y, list_of_bots)
 
     def _check_my_y_coordinate(self):
         self._change_genom_point(self.y + 1)
@@ -157,7 +149,7 @@ class Bot:
         return (self.x == other.x) and (self.y == other.y)
 
     def _check_my_energy(self):
-        self._change_genom_point(self.energy)
+        self._change_genom_point(min(self.energy, config.GenomShape))
 
     def _check_age(self):
         self._change_genom_point(self.age)
@@ -168,7 +160,31 @@ class Bot:
     def copy_genom(self):
         return self._genom
 
-    def kill_me(self, list_of_bots: list[list[Bot | DiedBot | None]]):
-        if self.energy <= 0:
-            list_of_bots[self.x][self.y] = None
-        list_of_bots[self.x][self.y] = DiedBot(self.x, self.y, int(self.energy * config.WhenDie))
+    def die(self, list_of_bots: list[list[Square]]):
+        list_of_bots[self.x][self.y].bot = None
+        for i in range(8):
+            coordinates = self._get_coordinates_to_move(i)
+            list_of_bots[coordinates[0]][coordinates[1]].add_poison(config.PoisonAddWhenBotDie)
+        list_of_bots[self.x][self.y].add_poison(config.PoisonAddWhenBotDie)
+
+
+class Square:
+    def __init__(self, x, y, create_bot=False, poison: int = 0):
+        self.x = x
+        self.y = y
+        if create_bot:
+            self.bot = Bot(x, y)
+        else:
+            self.bot = None
+        self.poison = poison
+
+    def do_move(self, list_of_bots: list[list[Square]]):
+        if self.bot is not None:
+            if self.poison >= config.PoisonCountToDie:
+                self.bot.die(list_of_bots)
+            else:
+                self.bot.move(list_of_bots)
+        self.add_poison(-config.PoisonLostPerTurn)
+
+    def add_poison(self, x):
+        self.poison = max(0, min(x, config.MaxPoisonOnSquare))

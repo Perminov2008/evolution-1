@@ -1,7 +1,7 @@
 import pygame
 import config
 import random
-from bot import Bot, DiedBot
+from bot_and_square import Bot, Square
 
 
 def get_iterator_to_preset_bots() -> tuple[int, int]:
@@ -14,7 +14,7 @@ def draw_world():
     sc.fill(config.BackGroundColour)
 
 
-def draw_bot(bot: Bot | DiedBot | None, mode="eat"):
+def draw_bot(bot: Bot, mode="eat"):
     if bot is None:
         return
     bot_rect = pygame.Rect(
@@ -23,14 +23,12 @@ def draw_bot(bot: Bot | DiedBot | None, mode="eat"):
         config.SquareSize,
         config.SquareSize
     )
-    if isinstance(bot, Bot):
-        match mode:
-            case "eat":
-                pygame.draw.rect(sc, bot.eat_rgb, bot_rect)
-            case "rasa":
-                pygame.draw.rect(sc, bot.rasa_rgb, bot_rect)
-    else:
-        pygame.draw.rect(sc, bot.rgb, bot_rect)
+
+    match mode:
+        case "eat":
+            pygame.draw.rect(sc, bot.eat_rgb, bot_rect)
+        case "rasa":
+            pygame.draw.rect(sc, bot.rasa_rgb, bot_rect)
 
 
 def check_mode():
@@ -38,8 +36,15 @@ def check_mode():
     key = pygame.key.get_pressed()
     if key[pygame.K_e]:
         mode = "eat"
-    elif key[pygame.K_r]:
+    if key[pygame.K_r]:
         mode = "rasa"
+
+
+def check_pause():
+    global paused
+    key = pygame.key.get_pressed()
+    if key[pygame.K_SPACE]:
+        paused = not paused
 
 
 pygame.init()
@@ -49,32 +54,33 @@ sc = pygame.display.set_mode((config.Indent + (config.SquareSize + config.Indent
 clock = pygame.time.Clock()
 
 mode = "eat"
+paused = False
 
 
 def f():
-    list_of_bots: list[list[Bot | None | DiedBot]]
-    list_of_bots = [[None for _ in range(config.WindowY)] for _ in range(config.WindowX)]
+    list_of_bots = [[Square(x, y) for y in range(config.WindowY)] for x in range(config.WindowX)]
 
-    for i, j in random.sample([i for i in get_iterator_to_preset_bots()], config.StartBotCount):
-        list_of_bots[i][j] = Bot(i, j)
+    for x, y in random.sample([i for i in get_iterator_to_preset_bots()], config.StartBotCount):
+        list_of_bots[x][y].bot = Bot(x, y)
 
     while True:
         flag = False
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 exit()
-        check_mode()
         draw_world()
         moved = [[False for _ in range(config.WindowY)] for _ in range(config.WindowX)]
         for x in range(config.WindowX):
             for y in range(config.WindowY):
-                if isinstance(list_of_bots[x][y], Bot) and not moved[x][y]:
-                    bot = list_of_bots[x][y]
-                    bot.move(list_of_bots)
-                    moved[bot.x][bot.y] = True
+                if list_of_bots[x][y].bot is not None and not moved[x][y]:
+                    if not paused:
+                        bot = list_of_bots[x][y].bot
+                        bot.move(list_of_bots)
+                        moved[bot.x][bot.y] = True
                     flag = True
-                draw_bot(list_of_bots[x][y], mode=mode)
-
+                    draw_bot(list_of_bots[x][y].bot, mode=mode)
+        check_mode()
+        check_pause()
         if not flag:
             return
         pygame.display.flip()
@@ -82,8 +88,8 @@ def f():
 
 
 if __name__ == "__main__":
-    i = 0
+    gen = 1
     while True:
         f()
-        print(f"Сдохло поколение №{i + 1}")
-        i += 1
+        print(f"Сдохло поколение №{gen}")
+        gen += 1
