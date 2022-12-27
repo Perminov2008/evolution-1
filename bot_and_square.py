@@ -51,7 +51,7 @@ class Bot:
                     self._convert_poison_to_energy(action - 37, list_of_bots)
                     break
                 case _:
-                    self._change_genom_point(action)
+                    self._change_genom_point(action - 44)
         else:
             self.die(list_of_bots)
         if self.age >= self._max_age or self.energy <= 0 or \
@@ -105,9 +105,12 @@ class Bot:
     def _see(self, x: int, list_of_bots: list[list[Square]]):
         sq = self._get_square_at_pos_x(x, list_of_bots)
         if sq.bot:
-            self._change_genom_point(1)
+            if sq.bot.rasa_rgb == self.rasa_rgb:
+                self._change_genom_point(2)
+            else:
+                self._change_genom_point(3)
         else:
-            self._change_genom_point(2)
+            self._change_genom_point(1)
 
     def _move_me_at(self, x: int, y: int, list_of_bots: list[list[Square]]):
         list_of_bots[self.x][self.y].bot = None
@@ -135,7 +138,7 @@ class Bot:
         self._change_genom_point(1)
 
     def _go(self, x: int, list_of_bots: list[list[Square]]):
-        self._see(x, list_of_bots)
+        self._change_genom_point(1)
         self._add_energy(-config.MoveEnergy)
         sq = self._get_square_at_pos_x(x, list_of_bots)
         if sq.bot is not None:
@@ -144,9 +147,6 @@ class Bot:
 
     def _check_my_y_coordinate(self):
         self._change_genom_point(self.y + 1)
-
-    def __eq__(self, other):
-        return (self.x == other.x) and (self.y == other.y)
 
     def _check_my_energy(self):
         self._change_genom_point(min(self.energy, config.GenomShape))

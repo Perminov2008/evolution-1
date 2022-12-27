@@ -57,7 +57,7 @@ mode = "eat"
 paused = False
 
 
-def f():
+def main():
     list_of_bots = [[Square(x, y) for y in range(config.WindowY)] for x in range(config.WindowX)]
 
     for x, y in random.sample([i for i in get_iterator_to_preset_bots()], config.StartBotCount):
@@ -90,6 +90,6 @@ def f():
 if __name__ == "__main__":
     gen = 1
     while True:
-        f()
+        main()
         print(f"Сдохло поколение №{gen}")
         gen += 1
