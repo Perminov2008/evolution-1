@@ -13,7 +13,7 @@ class Bot:
                 mutation_at = random.randint(0, config.GenomShape - 1)
                 self._genom[mutation_at] = random.randint(config.GenomItemsLen[0], config.GenomItemsLen[1] - 1)
         else:
-            self.eat_rgb = [255, 255, 255]  # белый
+            self.eat_rgb = [random.randint(1,255) for _ in range(3)]  # белый
             self.rasa_rgb = tuple([random.randint(1, 255) for _ in range(3)])
             self._genom = [random.randint(*config.GenomItemsLen) for _ in range(config.GenomShape)]
         self.energy = energy
