@@ -73,12 +73,12 @@ def main():
         for x in range(config.WindowX):
             for y in range(config.WindowY):
                 if list_of_bots[x][y].bot is not None and not moved[x][y]:
+                    bot = list_of_bots[x][y].bot
                     if not paused:
-                        bot = list_of_bots[x][y].bot
                         bot.move(list_of_bots)
                         moved[bot.x][bot.y] = True
                     flag = True
-                    draw_bot(list_of_bots[x][y].bot, mode=mode)
+                    draw_bot(bot, mode=mode)
         check_mode()
         check_pause()
         if not flag:

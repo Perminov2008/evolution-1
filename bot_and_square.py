@@ -13,7 +13,7 @@ class Bot:
                 mutation_at = random.randint(0, config.GenomShape - 1)
                 self._genom[mutation_at] = random.randint(config.GenomItemsLen[0], config.GenomItemsLen[1] - 1)
         else:
-            self.eat_rgb = [random.randint(1,255) for _ in range(3)]  # белый
+            self.eat_rgb = [random.randint(1, 255) for _ in range(3)]  # белый
             self.rasa_rgb = tuple([random.randint(1, 255) for _ in range(3)])
             self._genom = [random.randint(*config.GenomItemsLen) for _ in range(config.GenomShape)]
         self.energy = energy
@@ -173,9 +173,9 @@ class Square:
         self.x = x
         self.y = y
         if create_bot:
-            self.bot = Bot(x, y)
+            self.bot: Bot | None = Bot(x, y)
         else:
-            self.bot = None
+            self.bot: Bot | None = None
         self.poison = poison
 
     def do_move(self, list_of_bots: list[list[Square]]):
