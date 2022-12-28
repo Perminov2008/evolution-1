@@ -169,7 +169,7 @@ class Bot:
 
 
 class Square:
-    def __init__(self, x, y, create_bot=False, poison: int = 0):
+    def __init__(self, x: int, y: int, create_bot: bool = False, poison: int = 0):
         self.x = x
         self.y = y
         if create_bot:
